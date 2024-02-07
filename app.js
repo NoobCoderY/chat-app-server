@@ -8,6 +8,7 @@ import mongosanitize from "express-mongo-sanitize"
 import cors from "cors"
 import xss from "xss"
 import session from "cookie-session"
+import routes from "./routes/index.js"
 
 
 const app = express();
@@ -71,7 +72,7 @@ app.use(
 
 
 
-// app.use(routes);
+app.use(routes);
 
 app.use(helmet());
 

@@ -7,7 +7,7 @@ import { catchAsync } from "../utils/catchAsync.js";
 const signToken = (userId) => jwt.sign({ userId }, process.env.JWT_SECRET);
 
 export const login = catchAsync(
-    async () => {
+    async (req,res,next) => {
     
         const { email, password } = req.body;
       

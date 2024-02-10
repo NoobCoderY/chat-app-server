@@ -1,3 +1,4 @@
+import sgMail from "@sendgrid/mail"
 sgMail.setApiKey(process.env.SG_KEY);
 
 const sendSGMail = async ({
@@ -9,14 +10,13 @@ const sendSGMail = async ({
   text,
 }) => {
   try {
-    const from = "shreyanshshah242@gmail.com";
+    const from = "yashdiwaker74@gmail.com";
 
     const msg = {
       to: to, // Change to your recipient
       from: from, // Change to your verified sender
       subject: subject,
       html: html,
-      // text: text,
       attachments,
     };
 

@@ -2,7 +2,7 @@ import User from "../models/user.js"
 import jwt from "jsonwebtoken"
 import { catchAsync } from "../utils/catchAsync.js";
 import { filterObj } from "../utils/filterObj.js";
-// import { sendEmail } from "../services/sendEmail.js";
+import { sendEmail } from "../services/sendEmail.js";
 import otpGenerator from "otp-generator"
 import crypto from "crypto"
 import {promisify} from "util"
@@ -79,14 +79,15 @@ export const sendOtp = catchAsync(async (req, res, next) => {
 
   console.log(new_otp);
 
-  // TODO send mail
-  // sendEmail({
-  //   from: "shreyanshshah242@gmail.com",
-  //   to: user.email,
-  //   subject: "Verification OTP",
-  //   html: otp(user.firstName, new_otp),
-  //   attachments: [],
-  // });
+  
+  sendEmail({
+    from: "yashdiwaker74@gmail.com",
+    to: user.email,
+    subject: "Verification OTP",
+    // html: otp(user.firstName, new_otp),
+    html:`your otp is ${new_otp}`,
+    attachments: [],
+  });
 
   res.status(200).json({
     status: "success",
@@ -255,7 +256,7 @@ export const forgetPassword = catchAsync(async (req, res, next) => {
     console.log(resetURL);
 
     // mailService.sendEmail({
-    //   from: "shreyanshshah242@gmail.com",
+    //   from: "yashdiwaker74@gmail.com",
     //   to: user.email,
     //   subject: "Reset Password",
     //   html: resetPassword(user.firstName, resetURL),

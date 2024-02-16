@@ -64,19 +64,19 @@ const userSchema = new mongoose.Schema({
   otp_expiry_time: {
     type: Date,
   },
-  // friends: [
-  //   {
-  //     type: mongoose.Schema.ObjectId,
-  //     ref: "User",
-  //   },
-  // ],
-  // socket_id: {
-  //   type: String
-  // },
-  // status: {
-  //   type: String,
-  //   enum: ["Online", "Offline"]
-  // }
+  friends: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
+  ],
+  socket_id: {
+    type: String
+  },
+  status: {
+    type: String,
+    enum: ["Online", "Offline"]
+  }
 });
 
 userSchema.pre("save", async function (next) {

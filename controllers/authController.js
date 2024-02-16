@@ -77,16 +77,11 @@ export const sendOtp = catchAsync(async (req, res, next) => {
 
   await user.save({ new: true, validateModifiedOnly: true });
 
-  console.log(new_otp);
-
   
   sendEmail({
-    from: "yashdiwaker74@gmail.com",
-    to: user.email,
+    email: user.email,
     subject: "Verification OTP",
-    // html: otp(user.firstName, new_otp),
-    html:`your otp is ${new_otp}`,
-    attachments: [],
+    message:`your otp is ${new_otp}`,
   });
 
   res.status(200).json({
@@ -104,6 +99,7 @@ export const verifyOtp = catchAsync(async (req, res, next) => {
     otp_expiry_time: { $gt: Date.now() },
   });
 
+
   if (!user) {
     return res.status(400).json({
       status: "error",
@@ -118,7 +114,10 @@ export const verifyOtp = catchAsync(async (req, res, next) => {
     });
   }
 
-  if (!(await user.correctOTP(otp, user.otp))) {
+  let check = await user.correctOTP(otp, user.otp)
+
+
+  if (!check) {
     res.status(400).json({
       status: "error",
       message: "OTP is incorrect",
@@ -255,13 +254,11 @@ export const forgetPassword = catchAsync(async (req, res, next) => {
 
     console.log(resetURL);
 
-    // mailService.sendEmail({
-    //   from: "yashdiwaker74@gmail.com",
-    //   to: user.email,
-    //   subject: "Reset Password",
-    //   html: resetPassword(user.firstName, resetURL),
-    //   attachments: [],
-    // });
+    sendEmail({
+      email: user.email,
+      subject: "Reset Password",
+      message: resetURL
+    });
 
     res.status(200).json({
       status: "success",

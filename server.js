@@ -2,7 +2,9 @@ import app from "./app.js";
 import http from "http"
 import dotenv from "dotenv"
 import { dbConnection } from "./clint/dbconnection.js";
-import {Server} from "socket.io"
+import { Server } from "socket.io"
+import User from "./models/user.js"
+import FriendRequest from "./models/friendRequest.js"
 
 
 process.on("uncaughtException", (err) => {
@@ -53,24 +55,54 @@ io.on("connection", async (socket) => {
     }
   }
 
-  // // We can write our socket event listeners in here...
-  // socket.on("friend_request", async (data) => {
-  //   const to = await User.findById(data.to).select("socket_id");
-  //   const from = await User.findById(data.from).select("socket_id");
+  // We can write our socket event listeners in here...
+  socket.on("friend_request", async (data) => {
+    const to = await User.findById(data.to).select("socket_id");
+    const from = await User.findById(data.from).select("socket_id");
 
-  //   // create a friend request
-  //   await FriendRequest.create({
-  //     sender: data.from,
-  //     recipient: data.to,
-  //   });
-  //   // emit event request received to recipient
-  //   io.to(to?.socket_id).emit("new_friend_request", {
-  //     message: "New friend request received",
-  //   });
-  //   io.to(from?.socket_id).emit("request_sent", {
-  //     message: "Request Sent successfully!",
-  //   });
-  // });
+    // create a friend request
+    await FriendRequest.create({
+      sender: data.from,
+      recipient: data.to,
+    });
+    // emit event request received to recipient
+    io.to(to?.socket_id).emit("new_friend_request", {
+      message: "New friend request received",
+    });
+    io.to(from?.socket_id).emit("request_sent", {
+      message: "Request Sent successfully!",
+    });
+  });
+
+  socket.on("accept_request", async (data) => {
+    // accept friend request => add ref of each other in friends array
+    console.log(data);
+    const request_doc = await FriendRequest.findById(data.request_id);
+
+    console.log(request_doc);
+
+    const sender = await User.findById(request_doc.sender);
+    const receiver = await User.findById(request_doc.recipient);
+
+    sender.friends.push(request_doc.recipient);
+    receiver.friends.push(request_doc.sender);
+
+    await receiver.save({ new: true, validateModifiedOnly: true });
+    await sender.save({ new: true, validateModifiedOnly: true });
+
+    await FriendRequest.findByIdAndDelete(data.request_id);
+
+    // delete this request doc
+    // emit event to both of them
+
+    // emit event request accepted to both
+    io.to(sender?.socket_id).emit("request_accepted", {
+      message: "Friend Request Accepted",
+    });
+    io.to(receiver?.socket_id).emit("request_accepted", {
+      message: "Friend Request Accepted",
+    });
+  });
 })
 
 process.on("unhandledRejection", (err) => {
@@ -79,4 +111,4 @@ process.on("unhandledRejection", (err) => {
     server.close(() => {
       process.exit(1); //  Exit Code 1 indicates that a container shut down, either because of an application failure.
     });
-  });
+  })

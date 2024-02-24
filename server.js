@@ -103,6 +103,87 @@ io.on("connection", async (socket) => {
       message: "Friend Request Accepted",
     });
   });
+
+   // Handle incoming text/link messages
+   socket.on("text_message", async (data) => {
+    console.log("Received message:", data);
+
+    // data: {to, from, text}
+
+    const { message, conversation_id, from, to, type } = data;
+
+    const to_user = await User.findById(to);
+    const from_user = await User.findById(from);
+
+    // message => {to, from, type, created_at, text, file}
+
+    const new_message = {
+      to: to,
+      from: from,
+      type: type,
+      created_at: Date.now(),
+      text: message,
+    };
+
+    // fetch OneToOneMessage Doc & push a new message to existing conversation
+    const chat = await OneToOneMessage.findById(conversation_id);
+    chat.messages.push(new_message);
+    // save to db`
+    await chat.save({ new: true, validateModifiedOnly: true });
+
+    // emit incoming_message -> to user
+
+    io.to(to_user?.socket_id).emit("new_message", {
+      conversation_id,
+      message: new_message,
+    });
+
+    // emit outgoing_message -> from user
+    io.to(from_user?.socket_id).emit("new_message", {
+      conversation_id,
+      message: new_message,
+    });
+  });
+
+  // handle Media/Document Message
+  socket.on("file_message", (data) => {
+    console.log("Received message:", data);
+
+    // data: {to, from, text, file}
+
+    // Get the file extension
+    const fileExtension = path.extname(data.file.name);
+
+    // Generate a unique filename
+    const filename = `${Date.now()}_${Math.floor(
+      Math.random() * 10000
+    )}${fileExtension}`;
+
+    // upload file to AWS s3
+
+    // create a new conversation if its dosent exists yet or add a new message to existing conversation
+
+    // save to db
+
+    // emit incoming_message -> to user
+
+    // emit outgoing_message -> from user
+  });
+
+  // -------------- HANDLE SOCKET DISCONNECTION ----------------- //
+
+  socket.on("end", async (data) => {
+    // Find user by ID and set status as offline
+
+    if (data.user_id) {
+      await User.findByIdAndUpdate(data.user_id, { status: "Offline" });
+    }
+
+    // broadcast to all conversation rooms of this user that this user is offline (disconnected)
+
+    console.log("closing connection");
+    socket.disconnect(0);
+  });
 })
 
 process.on("unhandledRejection", (err) => {

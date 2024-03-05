@@ -13,6 +13,7 @@ process.on("uncaughtException", (err) => {
     process.exit(1); // Exit Code 1 indicates that a container shut down, either because of an application failure.
   });
   
+  console.log("check-server-2");
 
 dotenv.config({ path: "./config.env" });
 
@@ -103,8 +104,96 @@ io.on("connection", async (socket) => {
       message: "Friend Request Accepted",
     });
   });
+    
+  socket.on("accept_request", async (data) => {
+    // accept friend request => add ref of each other in friends array
+    console.log(data);
+    const request_doc = await FriendRequest.findById(data.request_id);
 
-   // Handle incoming text/link messages
+    console.log(request_doc);
+
+    const sender = await User.findById(request_doc.sender);
+    const receiver = await User.findById(request_doc.recipient);
+
+    sender.friends.push(request_doc.recipient);
+    receiver.friends.push(request_doc.sender);
+
+    await receiver.save({ new: true, validateModifiedOnly: true });
+    await sender.save({ new: true, validateModifiedOnly: true });
+
+    await FriendRequest.findByIdAndDelete(data.request_id);
+
+    // delete this request doc
+    // emit event to both of them
+
+    // emit event request accepted to both
+    io.to(sender?.socket_id).emit("request_accepted", {
+      message: "Friend Request Accepted",
+    });
+    io.to(receiver?.socket_id).emit("request_accepted", {
+      message: "Friend Request Accepted",
+    });
+  });
+
+  socket.on("get_direct_conversations", async ({ user_id }, callback) => {
+    const existing_conversations = await OneToOneMessage.find({
+      participants: { $all: [user_id] },
+    }).populate("participants", "firstName lastName avatar _id email status");
+
+    // db.books.find({ authors: { $elemMatch: { name: "John Smith" } } })
+
+    console.log(existing_conversations);
+
+    callback(existing_conversations);
+  });
+
+  socket.on("start_conversation", async (data) => {
+    // data: {to: from:}
+
+    const { to, from } = data;
+
+    // check if there is any existing conversation
+
+    const existing_conversations = await OneToOneMessage.find({
+      participants: { $size: 2, $all: [to, from] },
+    }).populate("participants", "firstName lastName _id email status");
+
+    console.log(existing_conversations[0], "Existing Conversation");
+
+    // if no => create a new OneToOneMessage doc & emit event "start_chat" & send conversation details as payload
+    if (existing_conversations.length === 0) {
+      let new_chat = await OneToOneMessage.create({
+        participants: [to, from],
+      });
+
+      new_chat = await OneToOneMessage.findById(new_chat).populate(
+        "participants",
+        "firstName lastName _id email status"
+      );
+
+      console.log(new_chat);
+
+      socket.emit("start_chat", new_chat);
+    }
+    // if yes => just emit event "start_chat" & send conversation details as payload
+    else {
+      socket.emit("start_chat", existing_conversations[0]);
+    }
+  });
+
+  socket.on("get_messages", async (data, callback) => {
+    try {
+      const { messages } = await OneToOneMessage.findById(
+        data.conversation_id
+      ).select("messages");
+      callback(messages);
+    } catch (error) {
+      console.log(error);
+    }
+  });
+
+
+                                                // Handle incoming text/link messages
    socket.on("text_message", async (data) => {
     console.log("Received message:", data);
 
